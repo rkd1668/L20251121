@@ -6,6 +6,16 @@
 #include "GameFramework/Character.h"
 #include "TestCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class EWeaponState : uint8
+{
+	Unarmed = 0 UMETA(DisplayName = "Unarmed"),
+	Pistol = 10 UMETA(DisplayName = "Pistol"),
+	Rifle = 20 UMETA(DisplayName = "Rifle"),
+	Launcher = 30 UMETA(DisplayName = "Launcher")
+};
+
+
 UCLASS()
 class L20251112_API ATestCharacter : public ACharacter
 {
@@ -54,4 +64,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Character)
 	uint8 bSprint : 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	uint8 bLeftLean : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	uint8 bRightLean : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	uint8 bAiming : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	EWeaponState WeaponState = EWeaponState::Unarmed;
 };

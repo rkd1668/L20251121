@@ -18,6 +18,28 @@ void UTestAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Direction = UKismetAnimationLibrary::CalculateDirection(Character->GetCharacterMovement()->Velocity, Character->GetActorRotation());
 		AimYaw = Character->GetBaseAimRotation().Yaw;
 		AimPitch = Character->GetBaseAimRotation().Pitch;
+		bAiming = Character->bAiming;
+		bRightLean = Character->bRightLean;
+		bLeftLean = Character->bLeftLean;
+		bCrouch = Character->bIsCrouched;
+
+		float TargetLeanAngle = 0;
+		if (bLeftLean)
+		{
+			TargetLeanAngle = -30.0f;
+		}
+		else if (bRightLean)
+		{
+			TargetLeanAngle = 30.0f;
+		}
+		else
+		{
+			TargetLeanAngle = 0;
+		}
+		
+		CurrentLeanAngle = FMath::FInterpTo(CurrentLeanAngle, TargetLeanAngle, DeltaSeconds, 8.0f);
+
+		WeaponState = Character->WeaponState;
 	}
 }
 
