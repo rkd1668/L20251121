@@ -44,6 +44,7 @@ void ATestCharacter::BeginPlay()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Weapon Setup"));
 		ChildWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, ChildWeapon->SocketName);
+		WeaponState = EWeaponState::Pistol;
 	}
 }
 
@@ -63,6 +64,7 @@ void ATestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	if (UIC)
 	{
 		UIC->BindAction(IA_Reload, ETriggerEvent::Completed, this, &ATestCharacter::Reload);
+		UIC->BindAction(IA_Fire, ETriggerEvent::Triggered, this, &ATestCharacter::DoFire);
 	}
 }
 
@@ -98,6 +100,15 @@ void ATestCharacter::Reload()
 		PlayAnimMontage(ChildWeapon->ReloadMontage);
 	}
 	//PlayAnimMontage();
+}
+
+void ATestCharacter::DoFire()
+{
+	AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
+	if (ChildWeapon)
+	{
+		ChildWeapon->Fire();
+	}
 }
 
 void ATestCharacter::ReloadWeapon()

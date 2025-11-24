@@ -50,4 +50,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Reload();
+
+	UFUNCTION(BlueprintCallable)
+	void Fire();
 };
