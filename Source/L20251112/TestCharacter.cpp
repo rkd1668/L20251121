@@ -99,3 +99,12 @@ void ATestCharacter::Reload()
 	}
 	//PlayAnimMontage();
 }
+
+void ATestCharacter::ReloadWeapon()
+{
+	AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
+	if (ChildWeapon)
+	{
+		ChildWeapon->Reload();
+	}
+}
