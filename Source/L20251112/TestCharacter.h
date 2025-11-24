@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "TestCharacter.generated.h"
 
+class UInputAction;
+
 UENUM(BlueprintType)
 enum class EWeaponState : uint8
 {
@@ -43,6 +45,9 @@ protected:
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UCameraComponent> Camera;
 
+	UPROPERTY(Category = Character, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UChildActorComponent> Weapon;
+
 public:
 	FORCEINLINE class USpringArmComponent* GetSpringArm() const 
 	{
@@ -61,6 +66,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Look(float Pitch, float Yaw);
 
+	UFUNCTION(BlueprintCallable)
+	void Reload();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Character)
 	uint8 bSprint : 1;
 
@@ -75,4 +83,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
 	EWeaponState WeaponState = EWeaponState::Unarmed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	TObjectPtr<UAnimMontage> HitMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	TObjectPtr<UAnimMontage> DeathMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	TObjectPtr<UInputAction> IA_Reload;
 };
