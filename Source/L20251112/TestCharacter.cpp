@@ -11,6 +11,10 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "EnhancedInputComponent.h"
 #include "Weapon/WeaponBase.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Weapon/BaseDamageType.h"
+#include "Engine/DamageEvents.h"
 
 
 // Sets default values
@@ -104,11 +108,86 @@ void ATestCharacter::Reload()
 
 void ATestCharacter::DoFire()
 {
-	AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
-	if (ChildWeapon)
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
 	{
-		ChildWeapon->Fire();
+		int32 SizeX = 0;
+		int32 SizeY = 0;
+		int32 CenterX = 0;
+		int32 CenterY = 0;
+		FVector WorldDirection;
+		FVector WorldLocation;
+		FVector CameraLocation;
+		FRotator CameraRotation;
+
+		PC->GetViewportSize(SizeX, SizeY);
+		CenterX = SizeX / 2;
+		CenterY = SizeY / 2;
+
+		//PC->DeprojectMousePositionToWorld();
+		PC->DeprojectScreenPositionToWorld((float)CenterX, (float)CenterY, WorldLocation, WorldDirection);
+	
+		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+		FVector Start = CameraLocation;
+		FVector End = CameraLocation + WorldDirection * 100000.0f;
+
+		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_PhysicsBody));
+		
+		TArray<AActor*> IgnoreActors;
+
+		FHitResult HitResult;
+
+		bool bResult = UKismetSystemLibrary::LineTraceSingleForObjects(
+			GetWorld(),
+			Start,
+			End,
+			ObjectTypes,
+			true,
+			IgnoreActors,
+			EDrawDebugTrace::ForDuration,
+			HitResult,
+			true
+		);
+		if (bResult)
+		{
+			//UGameplayStatics::ApplyDamage(HitResult.GetActor(),
+			//	50,
+			//	GetController(),
+			//	this,
+			//	UBaseDamageType::StaticClass()
+			//);
+			//UGameplayStatics::ApplyPointDamage(HitResult.GetActor(),
+			//	50,
+			//	-HitResult.ImpactNormal,
+			//	HitResult,
+			//	GetController(),
+			//	this,
+			//	UBaseDamageType::StaticClass()
+			//);
+			UGameplayStatics::ApplyRadialDamage(HitResult.GetActor(),
+				50,
+				HitResult.ImpactPoint,
+				300.0f,
+				UBaseDamageType::StaticClass(),
+				IgnoreActors,
+				this,
+				GetController(),
+				true
+			);
+			
+			//UE_LOG(LogTemp, Warning, TEXT("Hit %s"), *HitResult.GetActor()->GetName());
+		}
 	}
+
+	//AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
+	//if (ChildWeapon)
+	//{
+	//	ChildWeapon->Fire();
+	//}
 }
 
 void ATestCharacter::ReloadWeapon()
@@ -118,4 +197,46 @@ void ATestCharacter::ReloadWeapon()
 	{
 		ChildWeapon->Reload();
 	}
+}
+
+float ATestCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		FPointDamageEvent* Event = (FPointDamageEvent*)(&DamageEvent);
+		if (Event)
+		{
+			CurrentHP -= DamageAmount;
+
+			UE_LOG(LogTemp, Warning, TEXT("Point Damage %f %s"), DamageAmount, *(Event->HitInfo.BoneName.ToString()));
+		}
+	}
+	else if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
+	{
+		FRadialDamageEvent* Event = (FRadialDamageEvent*)(&DamageEvent);
+		if (Event)
+		{
+			CurrentHP -= DamageAmount;
+
+			UE_LOG(LogTemp, Warning, TEXT("Radial Damage %f %s"), DamageAmount, *Event->DamageTypeClass->GetName());
+		}
+	}
+	else if (DamageEvent.IsOfType(FDamageEvent::ClassID))
+	{
+		CurrentHP -= DamageAmount;
+		UE_LOG(LogTemp, Warning, TEXT("Damage %f"), DamageAmount);
+	}
+	
+	PlayAnimMontage(HitMontage);
+
+	if (CurrentHP <= 0)
+	{
+		//磷绰促. 局丛 根鸥林 犁积
+		PlayAnimMontage(DeathMontage);
+	}
+
+	return 0.0f;
 }

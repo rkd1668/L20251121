@@ -101,4 +101,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ReloadWeapon();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	float CurrentHP = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Character)
+	float MaxHP = 100;
+
+	UFUNCTION(BlueprintCallable)
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 };
