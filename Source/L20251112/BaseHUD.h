@@ -15,4 +15,7 @@ class L20251112_API ABaseHUD : public AHUD
 	GENERATED_BODY()
 	
 	virtual void DrawHUD() override;
+
+public:
+	int32 Dist = 0;
 };
