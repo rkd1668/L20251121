@@ -3,35 +3,48 @@
 
 #include "BaseHUD.h"
 #include "Engine/Canvas.h"
-#include "TestCharacter.h"
-#include "KismetAnimationLibrary.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Character.h"
 
 void ABaseHUD::DrawHUD()
 {
 	Super::DrawHUD();
 
-	ATestCharacter* Character = Cast<ATestCharacter>(PlayerOwner->GetCharacter());
 
-	int32 UnitX = Canvas->SizeX / 100;
-	int32 UnitY = Canvas->SizeY / 100;
+	int32 Unit = Canvas->SizeX / 100;
 	int32 CenterX = Canvas->SizeX / 2;
 	int32 CenterY = Canvas->SizeY / 2;
-	int32 DrawSize = 4;
-	float TargetDist = 0;
-	Draw2DLine(CenterX - (UnitX * DrawSize) - Dist, CenterY, CenterX - Dist, CenterY, FColor::Red);
-	Draw2DLine(CenterX + Dist, CenterY, CenterX + (UnitX * DrawSize) + Dist, CenterY, FColor::Red);
-	Draw2DLine(CenterX, CenterY - (UnitX * DrawSize) - Dist, CenterX, CenterY - Dist, FColor::Red);
-	Draw2DLine(CenterX, CenterY + Dist, CenterX, CenterY + (UnitX * DrawSize) + Dist, FColor::Red);
+	int32 DrawSize = Unit * 2;
 
-	if (Character->GetVelocity() != FVector(0, 0, 0))
+
+	float CurrentSpeed = 0.f;
+	float MaxSpeed = 0.0f;
+	float GapRatio = 0.0f;
+	int32 Gap = Unit * 3;
+
+	ACharacter* Pawn = Cast<ACharacter>(GetOwningPawn());
+	if (Pawn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Draw Hud"));
-		TargetDist = 30;
+		MaxSpeed = Pawn->GetCharacterMovement()->GetMaxSpeed();
+		CurrentSpeed = Pawn->GetCharacterMovement()->Velocity.Size2D();
+		GapRatio = CurrentSpeed / MaxSpeed;
 	}
-	else
-	{
-		TargetDist = 0;
-	}
+	Gap = (int32)((float)Gap * GapRatio);
 	
-	Dist = FMath::FInterpTo(Dist, TargetDist, GetWorld()->GetDeltaSeconds(), 5.0f);
+	Draw2DLine(CenterX - Unit - Gap, CenterY, CenterX - Gap, CenterY, FColor::Red);
+	Draw2DLine(CenterX + Gap, CenterY, CenterX + Unit + Gap, CenterY, FColor::Red);
+	Draw2DLine(CenterX, CenterY - Unit - Gap, CenterX, CenterY - Gap, FColor::Red);
+	Draw2DLine(CenterX, CenterY + Gap, CenterX, CenterY + Unit + Gap, FColor::Red);
+
+	//if (Character->GetVelocity() != FVector(0, 0, 0))
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Draw Hud"));
+	//	TargetDist = 30;
+	//}
+	//else
+	//{
+	//	TargetDist = 0;
+	//}
+	//
+	//Dist = FMath::FInterpTo(Dist, TargetDist, GetWorld()->GetDeltaSeconds(), 5.0f);
 }
