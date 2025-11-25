@@ -49,6 +49,7 @@ void ATestCharacter::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("Weapon Setup"));
 		ChildWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, ChildWeapon->SocketName);
 		WeaponState = EWeaponState::Pistol;
+		ChildWeapon->SetOwner(this);
 	}
 }
 
@@ -68,7 +69,9 @@ void ATestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	if (UIC)
 	{
 		UIC->BindAction(IA_Reload, ETriggerEvent::Completed, this, &ATestCharacter::Reload);
-		UIC->BindAction(IA_Fire, ETriggerEvent::Triggered, this, &ATestCharacter::DoFire);
+
+		UIC->BindAction(IA_Fire, ETriggerEvent::Started, this, &ATestCharacter::StartFire);
+		UIC->BindAction(IA_Fire, ETriggerEvent::Completed, this, &ATestCharacter::StopFire);
 	}
 }
 
@@ -108,86 +111,27 @@ void ATestCharacter::Reload()
 
 void ATestCharacter::DoFire()
 {
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
+	AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
+	if (ChildWeapon)
 	{
-		int32 SizeX = 0;
-		int32 SizeY = 0;
-		int32 CenterX = 0;
-		int32 CenterY = 0;
-		FVector WorldDirection;
-		FVector WorldLocation;
-		FVector CameraLocation;
-		FRotator CameraRotation;
-
-		PC->GetViewportSize(SizeX, SizeY);
-		CenterX = SizeX / 2;
-		CenterY = SizeY / 2;
-
-		//PC->DeprojectMousePositionToWorld();
-		PC->DeprojectScreenPositionToWorld((float)CenterX, (float)CenterY, WorldLocation, WorldDirection);
-	
-		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-		FVector Start = CameraLocation;
-		FVector End = CameraLocation + WorldDirection * 100000.0f;
-
-		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_PhysicsBody));
-		
-		TArray<AActor*> IgnoreActors;
-
-		FHitResult HitResult;
-
-		bool bResult = UKismetSystemLibrary::LineTraceSingleForObjects(
-			GetWorld(),
-			Start,
-			End,
-			ObjectTypes,
-			true,
-			IgnoreActors,
-			EDrawDebugTrace::ForDuration,
-			HitResult,
-			true
-		);
-		if (bResult)
-		{
-			//UGameplayStatics::ApplyDamage(HitResult.GetActor(),
-			//	50,
-			//	GetController(),
-			//	this,
-			//	UBaseDamageType::StaticClass()
-			//);
-			//UGameplayStatics::ApplyPointDamage(HitResult.GetActor(),
-			//	50,
-			//	-HitResult.ImpactNormal,
-			//	HitResult,
-			//	GetController(),
-			//	this,
-			//	UBaseDamageType::StaticClass()
-			//);
-			UGameplayStatics::ApplyRadialDamage(HitResult.GetActor(),
-				50,
-				HitResult.ImpactPoint,
-				300.0f,
-				UBaseDamageType::StaticClass(),
-				IgnoreActors,
-				this,
-				GetController(),
-				true
-			);
-			
-			//UE_LOG(LogTemp, Warning, TEXT("Hit %s"), *HitResult.GetActor()->GetName());
-		}
+		ChildWeapon->Fire();
 	}
+}
 
-	//AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
-	//if (ChildWeapon)
-	//{
-	//	ChildWeapon->Fire();
-	//}
+void ATestCharacter::StartFire()
+{
+	bIsFire = true;
+	DoFire();
+}
+
+void ATestCharacter::StopFire()
+{
+	bIsFire = false;
+	AWeaponBase* ChildWeapon = Cast<AWeaponBase>(Weapon->GetChildActor());
+	if (ChildWeapon)
+	{
+		ChildWeapon->StopFire();
+	}
 }
 
 void ATestCharacter::ReloadWeapon()
@@ -203,6 +147,10 @@ float ATestCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 {
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
+	if (CurrentHP <= 0)
+	{
+		return DamageAmount;
+	}
 
 	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
 	{
@@ -230,13 +178,33 @@ float ATestCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 		UE_LOG(LogTemp, Warning, TEXT("Damage %f"), DamageAmount);
 	}
 	
-	PlayAnimMontage(HitMontage);
+	DoHitReact();
 
 	if (CurrentHP <= 0)
 	{
 		//죽는다. 애님 몽타주 재생
-		PlayAnimMontage(DeathMontage);
+		//네트워크 할려면 다 RPC로 작업해야 됨
+		DoDeath();
 	}
 
 	return 0.0f;
+}
+
+void ATestCharacter::DoDeathEnd()
+{
+	GetController()->SetActorEnableCollision(false);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetMesh()->SetSimulatePhysics(true);
+}
+
+void ATestCharacter::DoDeath()
+{
+	FName SectionName = FName(FString::Printf(TEXT("%d"), FMath::RandRange(1, 6)));
+	PlayAnimMontage(DeathMontage, 1.0f, SectionName);
+}
+
+void ATestCharacter::DoHitReact()
+{
+	FName SectionName = FName(FString::Printf(TEXT("%d"), FMath::RandRange(1, 8)));
+	PlayAnimMontage(HitMontage, 1.0f, SectionName);
 }
